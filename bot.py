@@ -14,35 +14,19 @@ from telegram.ext import (
     filters,
 )
 
-"""
-Personal tracker & recommender for films/series.
-Features:
-- /start: регистрация
-- /add: добавить просмотр с оценкой
-- /last: последние просмотры
-- /stats: агрегированные метрики
-- /recommend: рекомендации по предпочтениям
-- /progress: сравнение двух периодов
-- /help: справка
-Data is stored in SQLite (tracker.db). IMDB baseline is loaded from imdb.csv.
-"""
 
-# Conversation states
 ADD_TITLE, ADD_EXISTS_RATING, ADD_DATE, ADD_DURATION, ADD_NEW_DETAILS, ADD_NEW_RATING = range(
     6
 )
 
 DB_PATH = "tracker.db"
 CATALOG_CSV = "imdb.csv"
-# Если хотите задавать токен прямо в коде, укажите его здесь (небезопасно для прод)
-BOT_TOKEN = "7688868399:AAGQVMsdoGA-m07-5Qo3liosMKTUE5fCm6E"
+BOT_TOKEN = ""
 
-# Keyboards
+
 main_keyboard = [["/add", "/last"], ["/stats", "/recommend"], ["/progress", "/help"]]
 main_markup = ReplyKeyboardMarkup(main_keyboard, one_time_keyboard=False, resize_keyboard=True)
 
-
-# ---------- Storage helpers ----------
 def get_conn():
     return sqlite3.connect(DB_PATH)
 
@@ -98,7 +82,6 @@ def load_catalog_if_empty() -> None:
         return
 
     df = pd.read_csv(CATALOG_CSV)
-    # Normalization similar to analysis script
     column_mapping = {}
     if "Data" in df.columns:
         column_mapping["Data"] = "Date"
@@ -138,7 +121,6 @@ def load_catalog_if_empty() -> None:
 
 
 def find_in_catalog(title: str):
-    # Пытаемся найти точное или почти точное совпадение (регистр не важен)
     pattern = title.strip()
     conn = get_conn()
     cur = conn.cursor()
@@ -400,8 +382,6 @@ def progress(user_id: int) -> Dict[str, Any]:
         "previous": agg(prev_start, curr_start - timedelta(days=1)),
     }
 
-
-# ---------- Bot handlers ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Привет! Я веду дневник просмотров и делаю рекомендации.\n"
@@ -673,7 +653,6 @@ def main():
     application.add_handler(CommandHandler("progress", progress_cmd))
     application.add_handler(conv)
 
-    # Default echo for free text to avoid silence
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, lambda u, c: u.message.reply_text("Используй меню команд."))
     )
@@ -682,4 +661,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
